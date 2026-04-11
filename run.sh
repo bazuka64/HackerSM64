@@ -1,0 +1,1 @@
+make -j4 && "/mnt/c/Program Files/parallel-launcher/parallel-launcher.exe" build/us_n64/sm64.z64

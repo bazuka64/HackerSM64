@@ -1378,6 +1378,11 @@ s32 lvl_init_from_save_file(UNUSED s16 initOrUpdate, s32 levelNum) {
 }
 
 s32 lvl_set_current_level(UNUSED s16 initOrUpdate, s32 levelNum) {
+    
+#ifdef SKIP_STAR_SELECT
+    return FALSE;
+#endif
+    
     s32 warpCheckpointActive = sWarpCheckpointActive;
 
     sWarpCheckpointActive = FALSE;
