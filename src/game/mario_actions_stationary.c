@@ -809,6 +809,7 @@ s32 landing_step(struct MarioState* m, s32 animID, u32 action) {
     stationary_ground_step(m);
     set_mario_animation(m, animID);
     if (is_anim_at_end(m)) {
+        if (gCurrLevelNum == LEVEL_BOB && m->input & INPUT_Z_DOWN)return FALSE;
         return set_mario_action(m, action, 0);
     }
     return FALSE;
@@ -1015,8 +1016,15 @@ s32 act_twirl_land(struct MarioState* m) {
 
 s32 act_ground_pound_land(struct MarioState* m) {
 
-    if (m->actionTimer++ == 0 && gCurrLevelNum == LEVEL_BOB) {
-        hook_from_ground_pound_land(m);
+    if (gCurrLevelNum == LEVEL_BOB) {
+        if (m->actionTimer++ == 0 || m->input & INPUT_Z_DOWN){
+            hook_from_ground_pound_land(m);
+            play_mario_heavy_landing_sound(m, SOUND_ACTION_TERRAIN_HEAVY_LANDING);
+            if(m->actionTimer % 6 == 0){
+                m->particleFlags |= PARTICLE_MIST_CIRCLE;
+                m->particleFlags |= PARTICLE_HORIZONTAL_STAR ;
+            }
+        }
     }
 
     m->actionState = ACT_STATE_GROUND_POUND_LAND_1;

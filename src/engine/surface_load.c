@@ -67,8 +67,6 @@ static struct SurfaceNode* alloc_surface_node(u32 dynamic) {
     return node;
 }
 
-#include "hack/hack.h"
-
 /**
  * Allocate the part of the surface pool to contain a surface and
  * initialize the surface.
@@ -88,7 +86,7 @@ static struct Surface* alloc_surface(u32 dynamic) {
 
     surface->id = gSurfacesAllocated - 1;
     extern struct Surface** surface_pointer_array;
-    if(surface_pointer_array != NULL && surface->id < QUAD_NUM_ALL * 4 && !dynamic) {
+    if(surface_pointer_array != NULL && !dynamic) {
         surface_pointer_array[surface->id] = surface;
     }
 

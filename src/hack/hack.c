@@ -8,7 +8,12 @@
 #include "string.h"
 #include "engine/math_util.h"
 
-#include "hack.h"
+#define QUAD_SIZE 100
+#define FLOOR_HALF_SIZE 1000
+#define QUAD_NUM_LINE     (FLOOR_HALF_SIZE * 2 / QUAD_SIZE)
+#define QUAD_NUM_ALL     (QUAD_NUM_LINE * QUAD_NUM_LINE)
+#define VERT_NUM_LINE  (QUAD_NUM_LINE + 1)
+#define VERT_NUM_ALL (VERT_NUM_LINE * VERT_NUM_LINE)
 
 // struct Surface の vertex1/2/3 から normal と originOffset を再計算する
 static void surface_recalc_normal(struct Surface* s) {
@@ -35,8 +40,13 @@ static void surface_recalc_normal(struct Surface* s) {
 struct Vertex {
 	s16 x, y, z;
 };
+enum Color {
+	green,
+	brown
+};
 struct Triangle {
 	u16 indices[3];
+	enum Color color;
 };
 struct Quad {
 	struct Triangle tris[4];
@@ -86,6 +96,11 @@ void hook_from_free_level_pool(void) {
 			quad->tris[3].indices[0] = VERT_NUM_ALL + j * QUAD_NUM_LINE + i;
 			quad->tris[3].indices[1] = (j + 1) * VERT_NUM_LINE + i + 1;
 			quad->tris[3].indices[2] = j * VERT_NUM_LINE + i + 1;
+
+			quad->tris[0].color = green;
+			quad->tris[1].color = green;
+			quad->tris[2].color = green;
+			quad->tris[3].color = green;
 		}
 	}
 
@@ -124,29 +139,33 @@ void hook_from_free_level_pool(void) {
 	surface_pointer_array = main_pool_alloc(sizeof(struct Surface*) * QUAD_NUM_ALL * 4, MEMORY_POOL_LEFT);
 }
 
+void do_texture(Gfx** dll, enum Color color) {
+	Gfx* dl = *dll;
+	gDPPipeSync(dl++);
+	gSPTexture(dl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
+	gDPSetCombineMode(dl++, G_CC_DECALRGBA, G_CC_DECALRGBA);
+	gDPSetTextureImage(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, color == green ? generic_09005800 : generic_0900A000);
+	gDPSetTile(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0,
+		G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD,
+		G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD);
+	gDPLoadSync(dl++);
+	gDPLoadBlock(dl++, G_TX_LOADTILE, 0, 0, (32 * 32) - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
+	gDPPipeSync(dl++);
+	gDPSetTile(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0, G_TX_RENDERTILE, 0,
+		G_TX_WRAP | G_TX_NOMIRROR, 5, G_TX_NOLOD,
+		G_TX_WRAP | G_TX_NOMIRROR, 5, G_TX_NOLOD);
+	gDPSetTileSize(dl++, G_TX_RENDERTILE, 0, 0, (32 - 1) << 2, (32 - 1) << 2);
+	*dll = dl;
+}
+
 Gfx* hook_from_geo_asm(s32 callContext, struct GraphNode* node, Mat4 mtxf) {
 	Gfx* head = NULL;
 
 	if (callContext == GEO_CONTEXT_RENDER && vertices_dl != NULL) {
 		// Texture setup (10) + per quad (2 gSPVertex + 2 gSP1Triangle = 4) * GRID_N^2 + cleanup (2)
-		head = alloc_display_list((10 + QUAD_NUM_ALL * 7 + 2) * sizeof(Gfx));
+		head = alloc_display_list((10*QUAD_NUM_ALL*4 + QUAD_NUM_ALL * 7 + 2) * sizeof(Gfx));
 		Gfx* dl = head;
-
-		gDPPipeSync(dl++);
-		gSPTexture(dl++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-		gDPSetCombineMode(dl++, G_CC_DECALRGBA, G_CC_DECALRGBA);
-		gDPSetTextureImage(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, generic_09005800);
-		gDPSetTile(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0,
-			G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD,
-			G_TX_WRAP | G_TX_NOMIRROR, G_TX_NOMASK, G_TX_NOLOD);
-		gDPLoadSync(dl++);
-		gDPLoadBlock(dl++, G_TX_LOADTILE, 0, 0, (32 * 32) - 1, CALC_DXT(32, G_IM_SIZ_16b_BYTES));
-		gDPPipeSync(dl++);
-		gDPSetTile(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 8, 0, G_TX_RENDERTILE, 0,
-			G_TX_WRAP | G_TX_NOMIRROR, 5, G_TX_NOLOD,
-			G_TX_WRAP | G_TX_NOMIRROR, 5, G_TX_NOLOD);
-		gDPSetTileSize(dl++, G_TX_RENDERTILE, 0, 0, (32 - 1) << 2, (32 - 1) << 2);
-
+		
 		for (int j = 0; j < QUAD_NUM_LINE; j++) {
 			for (int i = 0; i < QUAD_NUM_LINE; i++) {
 				struct Quad* quad = &quads[j * QUAD_NUM_LINE + i];
@@ -156,9 +175,15 @@ Gfx* hook_from_geo_asm(s32 callContext, struct GraphNode* node, Mat4 mtxf) {
 				gSPVertex(dl++, &vertices_dl[upper_left], 2, 0);
 				gSPVertex(dl++, &vertices_dl[lower_left], 2, 2);
 				gSPVertex(dl++, &vertices_dl[center], 1, 4);
+				
+				
+				do_texture(&dl, quad->tris[0].color);
 				gSP1Triangle(dl++, 0, 4, 1, 0);
+				do_texture(&dl, quad->tris[1].color);
 				gSP1Triangle(dl++, 0, 2, 4, 0);
+				do_texture(&dl, quad->tris[2].color);
 				gSP1Triangle(dl++, 4, 2, 3, 0);
+				do_texture(&dl, quad->tris[3].color);
 				gSP1Triangle(dl++, 4, 3, 1, 0);
 			}
 		}
@@ -244,6 +269,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 	// up
 	if (quad_id / QUAD_NUM_LINE > 0) {
 		u16 up_quad = quad_id - QUAD_NUM_LINE;
+		quads[up_quad].tris[0].color = brown;
+		quads[up_quad].tris[1].color = brown;
+		quads[up_quad].tris[2].color = brown;
+		quads[up_quad].tris[3].color = brown;
 		// tri0
 		surface_pointer_array[up_quad * 4 + 0]->vertex2[1] -= deep / 2;
 		surface_pointer_array[up_quad * 4 + 0]->lowerY -= deep / 2;
@@ -268,6 +297,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 	//down
 	if (quad_id / QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
 		u16 down_quad = quad_id + QUAD_NUM_LINE;
+		quads[down_quad].tris[0].color = brown;
+		quads[down_quad].tris[1].color = brown;
+		quads[down_quad].tris[2].color = brown;
+		quads[down_quad].tris[3].color = brown;
 		// tri0
 		surface_pointer_array[down_quad * 4 + 0]->vertex1[1] -= deep;
 		surface_pointer_array[down_quad * 4 + 0]->vertex2[1] -= deep / 2;
@@ -292,6 +325,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 	//left
 	if (quad_id % QUAD_NUM_LINE > 0) {
 		u16 left_quad = quad_id - 1;
+		quads[left_quad].tris[0].color = brown;
+		quads[left_quad].tris[1].color = brown;
+		quads[left_quad].tris[2].color = brown;
+		quads[left_quad].tris[3].color = brown;
 		// tri0
 		surface_pointer_array[left_quad * 4 + 0]->vertex2[1] -= deep / 2;
 		surface_pointer_array[left_quad * 4 + 0]->vertex3[1] -= deep;
@@ -316,6 +353,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 	//right
 	if (quad_id % QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
 		u16 right_quad = quad_id + 1;
+		quads[right_quad].tris[0].color = brown;
+		quads[right_quad].tris[1].color = brown;
+		quads[right_quad].tris[2].color = brown;
+		quads[right_quad].tris[3].color = brown;
 		// tri0
 		surface_pointer_array[right_quad * 4 + 0]->vertex1[1] -= deep;
 		surface_pointer_array[right_quad * 4 + 0]->vertex2[1] -= deep / 2;
@@ -338,8 +379,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 		surface_recalc_normal(surface_pointer_array[right_quad * 4 + 3]);
 	}
 	// upper left
-	if(quad_id / QUAD_NUM_LINE > 0 && quad_id % QUAD_NUM_LINE > 0) {
+	if (quad_id / QUAD_NUM_LINE > 0 && quad_id % QUAD_NUM_LINE > 0) {
 		u16 up_left_quad = quad_id - QUAD_NUM_LINE - 1;
+		quads[up_left_quad].tris[2].color = brown;
+		quads[up_left_quad].tris[3].color = brown;
 		// tri2
 		surface_pointer_array[up_left_quad * 4 + 2]->vertex3[1] -= deep;
 		surface_pointer_array[up_left_quad * 4 + 2]->lowerY -= deep;
@@ -350,8 +393,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 		surface_recalc_normal(surface_pointer_array[up_left_quad * 4 + 3]);
 	}
 	// upper right
-	if(quad_id / QUAD_NUM_LINE > 0 && quad_id % QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
+	if (quad_id / QUAD_NUM_LINE > 0 && quad_id % QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
 		u16 up_right_quad = quad_id - QUAD_NUM_LINE + 1;
+		quads[up_right_quad].tris[1].color = brown;
+		quads[up_right_quad].tris[2].color = brown;
 		// tri1
 		surface_pointer_array[up_right_quad * 4 + 1]->vertex2[1] -= deep;
 		surface_pointer_array[up_right_quad * 4 + 1]->lowerY -= deep;
@@ -362,8 +407,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 		surface_recalc_normal(surface_pointer_array[up_right_quad * 4 + 2]);
 	}
 	// lower left
-	if(quad_id / QUAD_NUM_LINE < QUAD_NUM_LINE - 1 && quad_id % QUAD_NUM_LINE > 0) {
+	if (quad_id / QUAD_NUM_LINE < QUAD_NUM_LINE - 1 && quad_id % QUAD_NUM_LINE > 0) {
 		u16 lower_left_quad = quad_id + QUAD_NUM_LINE - 1;
+		quads[lower_left_quad].tris[0].color = brown;
+		quads[lower_left_quad].tris[3].color = brown;
 		// tri0
 		surface_pointer_array[lower_left_quad * 4 + 0]->vertex3[1] -= deep;
 		surface_pointer_array[lower_left_quad * 4 + 0]->lowerY -= deep;
@@ -374,8 +421,10 @@ void hook_from_ground_pound_land(struct MarioState* m) {
 		surface_recalc_normal(surface_pointer_array[lower_left_quad * 4 + 3]);
 	}
 	// lower right
-	if(quad_id / QUAD_NUM_LINE < QUAD_NUM_LINE - 1 && quad_id % QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
+	if (quad_id / QUAD_NUM_LINE < QUAD_NUM_LINE - 1 && quad_id % QUAD_NUM_LINE < QUAD_NUM_LINE - 1) {
 		u16 lower_right_quad = quad_id + QUAD_NUM_LINE + 1;
+		quads[lower_right_quad].tris[0].color = brown;
+		quads[lower_right_quad].tris[1].color = brown;
 		// tri0
 		surface_pointer_array[lower_right_quad * 4 + 0]->vertex1[1] -= deep;
 		surface_pointer_array[lower_right_quad * 4 + 0]->lowerY -= deep;
