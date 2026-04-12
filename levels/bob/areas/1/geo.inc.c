@@ -1,4 +1,6 @@
 // 0x0E000488
+Gfx *hook_from_geo_asm(s32 callContext, struct GraphNode *node, Mat4 mtxf);
+
 const GeoLayout bob_geo_000488[] = {
    GEO_NODE_SCREEN_AREA(10, SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_CENTER_X, SCREEN_CENTER_Y),
    GEO_OPEN_NODE(),
@@ -15,12 +17,7 @@ const GeoLayout bob_geo_000488[] = {
          GEO_OPEN_NODE(),
             GEO_CAMERA(CAMERA_MODE_RADIAL, 0, 2000, 6000, 3072, 0, -4608, geo_camera_main),
             GEO_OPEN_NODE(),
-               GEO_DISPLAY_LIST(LAYER_OPAQUE, bob_seg7_dl_07004390),
-               GEO_DISPLAY_LIST(LAYER_OPAQUE, bob_seg7_dl_07009D80),
-               GEO_DISPLAY_LIST(LAYER_TRANSPARENT_DECAL, bob_seg7_dl_0700A470),
-               GEO_DISPLAY_LIST(LAYER_ALPHA, bob_seg7_dl_0700A920),
-               GEO_DISPLAY_LIST(LAYER_OPAQUE, bob_seg7_dl_0700DD18),
-               GEO_DISPLAY_LIST(LAYER_OPAQUE, bob_seg7_dl_0700E338),
+               GEO_ASM(0, hook_from_geo_asm),
                GEO_RENDER_OBJ(),
                GEO_ASM(ENVFX_MODE_NONE, geo_envfx_main),
             GEO_CLOSE_NODE(),

@@ -10,7 +10,7 @@ TARGET_STRING := sm64
 # Preprocessor definitions
 DEFINES :=
 
-SRC_DIRS :=
+SRC_DIRS := src/hack
 USE_DEBUG := 0
 
 #==============================================================================#

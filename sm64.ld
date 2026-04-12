@@ -258,18 +258,22 @@ SECTIONS
       BUILD_DIR/src/engine/surface_load.o(.text*);
       BUILD_DIR/src/engine/graph_node.o(.text*);
       BUILD_DIR/src/engine*.o(.text*);
+      BUILD_DIR/src/hack*.o(.text*);
       _engineSegmentTextEnd = .;
       /* data */
       BUILD_DIR/src/game*.o(.data*);
       BUILD_DIR/src/engine*.o(.data*);
+      BUILD_DIR/src/hack*.o(.data*);
       BUILD_DIR/src/usb*.o(.data*);
       /* sdata */
       BUILD_DIR/src/game*.o(.sdata*);
       BUILD_DIR/src/engine*.o(.sdata*);
+      BUILD_DIR/src/hack*.o(.sdata*);
       BUILD_DIR/src/usb*.o(.data*);
       /* rodata */
       BUILD_DIR/src/game*.o(.rodata*);
       BUILD_DIR/src/engine*.o(.rodata*);
+      BUILD_DIR/src/hack*.o(.rodata*);
       BUILD_DIR/src/usb*.o(.rodata*);
       . = ALIGN(0x10);
    }
@@ -278,6 +282,7 @@ SECTIONS
    {
       BUILD_DIR/src/game*.o(.*bss*);
       BUILD_DIR/src/engine*.o(.bss*);
+      BUILD_DIR/src/hack*.o(.bss*);
       . = ALIGN(0x40);
    }
    END_NOLOAD(engine)

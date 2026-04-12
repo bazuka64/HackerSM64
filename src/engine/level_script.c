@@ -386,6 +386,10 @@ static void level_cmd_free_level_pool(void) {
 
     alloc_only_pool_resize(sLevelPool, sLevelPool->usedSpace);
     sLevelPool = NULL;
+    
+    if(gCurrLevelNum == LEVEL_BOB){
+        hook_from_free_level_pool();
+    }
 
     for (i = 0; i < AREA_COUNT; i++) {
         if (gAreaData[i].terrainData != NULL) {
