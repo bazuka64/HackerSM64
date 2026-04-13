@@ -16,6 +16,8 @@
 #include "make_const_nonconst.h"
 #include "levels/wf/header.h"
 
+#include "actors/group14.h"
+
 // Unlike most levels, some of the level geometry objects in WF are defined as regular objects instead of terrain objects.
 // Some of them are still terrain objects, however.
 static const LevelScript script_func_local_1[] = {
@@ -138,6 +140,8 @@ const LevelScript level_wf_entry[] = {
     LOAD_MODEL_FROM_GEO(MODEL_WF_KICKABLE_BOARD,                wf_geo_000BA8),
     LOAD_MODEL_FROM_GEO(MODEL_WF_TOWER_DOOR,                    wf_geo_000BE0),
     LOAD_MODEL_FROM_GEO(MODEL_WF_KICKABLE_BOARD_FELLED,         wf_geo_000BC8),
+    LOAD_MODEL_FROM_GEO(MODEL_TREASURE_CHEST_BASE,     treasure_chest_base_geo),
+    LOAD_MODEL_FROM_GEO(MODEL_TREASURE_CHEST_LID,      treasure_chest_lid_geo),
 
     AREA(/*index*/ 1, wf_geo_000BF8),
         OBJECT(/*model*/ MODEL_NONE, /*pos*/  2600, 1256,  5120, /*angle*/ 0, 90, 0, /*behParam*/ 0x000A0000, /*beh*/ bhvSpinAirborneWarp),
@@ -157,6 +161,7 @@ const LevelScript level_wf_entry[] = {
         SHOW_DIALOG(/*index*/ 0x00, DIALOG_030),
         SET_BACKGROUND_MUSIC(/*settingsPreset*/ 0x0005, /*seq*/ SEQ_LEVEL_GRASS),
         TERRAIN_TYPE(/*terrainType*/ TERRAIN_STONE),
+        OBJECT(/*model*/ MODEL_NONE, /*pos*/  0, 0,  0, /*angle*/ 0, 0, 0, /*behParam*/ 0x00000000, /*beh*/ bhvRiskOfRain),
     END_AREA(),
 
     FREE_LEVEL_POOL(),

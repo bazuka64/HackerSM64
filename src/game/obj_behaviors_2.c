@@ -329,7 +329,7 @@ static void obj_roll_to_match_yaw_turn(s16 targetYaw, s16 maxRoll, s16 rollSpeed
     obj_face_roll_approach(targetRoll, rollSpeed);
 }
 
-static s16 random_linear_offset(s16 base, s16 range) {
+ s16 random_linear_offset(s16 base, s16 range) {
     return base + (s16)(range * random_float());
 }
 

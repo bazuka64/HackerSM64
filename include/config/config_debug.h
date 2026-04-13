@@ -30,7 +30,8 @@
  * This allows you to quickly test the level you're working on.
  * If you want the game to boot normally, just comment out the define again.
  */
-#define TEST_LEVEL LEVEL_BOB
+// #define TEST_LEVEL LEVEL_BOB
+#define TEST_LEVEL LEVEL_WF
 
 #define SKIP_STAR_SELECT
 
