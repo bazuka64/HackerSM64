@@ -19,9 +19,14 @@ void bhv_risk_of_rain_init() {
 		chest->oPosX = x;
 		chest->oPosY = height;
 		chest->oPosZ = z;
+		chest->oFaceAngleYaw = random_u16();;
 	}
 }
 
 void bhv_risk_of_rain_loop() {
 
+}
+
+void hook_from_execute_mario() {
+	
 }
